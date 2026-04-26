@@ -9,6 +9,7 @@ export default function App() {
   const [watching, setWatching] = useState([])
   const [status, setStatus] = useState("")
   const [loading, setLoading] = useState(false)
+  const [stopStatus, setStopStatus] = useState("")
 
   useEffect(() => {
     fetch(`${API}/courses`)
@@ -42,6 +43,29 @@ export default function App() {
       setStatus("Can't connect to server. Is it running?")
     }
     setLoading(false)
+  }
+
+  const stopWatch = async (course_code, term) => {
+    if (!phone) {
+      setStopStatus("Enter your phone number above first so we know which watcher to remove.")
+      return
+    }
+
+    try {
+      const res = await fetch(
+        `${API}/watch?phone=${encodeURIComponent(phone)}&course_code=${course_code}&term=${term}`,
+        { method: "DELETE" }
+      )
+
+      if (res.ok) {
+        setWatching(watching.filter(c => !(c.course_code === course_code && c.term === term)))
+        setStopStatus(`✓ Stopped watching ${course_code}.`)
+      } else {
+        setStopStatus("Something went wrong. Try again.")
+      }
+    } catch {
+      setStopStatus("Can't connect to server.")
+    }
   }
 
   return (
@@ -98,28 +122,49 @@ export default function App() {
       {watching.length > 0 && (
         <div style={{ marginTop: 40 }}>
           <h3 style={{ marginBottom: 12 }}>Currently watching</h3>
+          {stopStatus && (
+            <p style={{ fontSize: 13, color: stopStatus.startsWith("✓") ? "green" : "red", marginBottom: 8 }}>
+              {stopStatus}
+            </p>
+          )}
           {watching.map((c, i) => (
             <div key={i} style={{
               padding: 12,
               background: "#f3f4f6",
               borderRadius: 6,
               marginBottom: 8,
-              fontSize: 15
+              fontSize: 15,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center"
             }}>
-              📖 {c.course_code} — Term {c.term}
+              <span>📖 {c.course_code} — Term {c.term}</span>
+              <button
+                onClick={() => stopWatch(c.course_code, c.term)}
+                style={{
+                  padding: "4px 12px",
+                  background: "white",
+                  border: "1px solid #ddd",
+                  borderRadius: 4,
+                  cursor: "pointer",
+                  color: "#ef4444",
+                  fontSize: 13
+                }}
+              >
+                Stop watching
+              </button>
             </div>
           ))}
         </div>
       )}
 
-      <p style={{ marginTop: 40, fontSize: 13, color: "#999" }}>
-        Built for UW students. Checks every 60 seconds between 8am–8pm.
-      </p>
-
-      <div style={{ marginTop: 20, padding: 16, background: "#f9fafb", borderRadius: 6, fontSize: 13, color: "#666" }}>
-        <strong>How to stop texts:</strong> Reply <strong>STOP</strong> to the number that texted you. Reply <strong>START</strong> to resume.
+      <div style={{ marginTop: 30, padding: 16, background: "#f9fafb", borderRadius: 6, fontSize: 13, color: "#666" }}>
+        <strong>How to stop all texts:</strong> Reply <strong>STOP</strong> to the number that texted you. Reply <strong>START</strong> to resume.
       </div>
 
+      <p style={{ marginTop: 20, fontSize: 13, color: "#999" }}>
+        Built for UW students. Checks every 60 seconds between 8am–8pm.
+      </p>
     </div>
   )
 }
