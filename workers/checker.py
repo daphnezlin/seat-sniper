@@ -16,13 +16,24 @@ async def check_and_notify(course_code: str, term: str, current_sections: list, 
     """
     previous_sections = await get_last_snapshot(course_code, term)
 
-    # First time we've seen this course — just save and move on
+    # First time this course has been seen, save and check if seats already open
     if previous_sections is None:
         await save_snapshot(course_code, term, current_sections)
+        
+        # Notify immediately if seats are already open
+        if notifier:
+            for current in current_sections:
+                if current["has_open_seat"]:
+                    spots_left = current["capacity"] - current["enrolled"]
+                    message = f"Seat available right now! {spots_left} spot(s) ({current['enrolled']}/{current['capacity']})"
+                    watchers = await get_watchers(course_code, term)
+                    for phone in watchers:
+                        await notifier(phone, course_code, current["section"], message)
+        
         print(f"{course_code}: First snapshot saved")
         return
 
-    # Compare each section to what we saw last time
+    # Compare each section to what was seen last time
     for current in current_sections:
         previous = find_section(previous_sections, current["section"])
 
@@ -32,7 +43,7 @@ async def check_and_notify(course_code: str, term: str, current_sections: list, 
         was_full = not previous["has_open_seat"]
         now_open = current["has_open_seat"]
 
-        # Seat just opened — this is what we care about
+        # Seat just opened
         if was_full and now_open:
             spots_left = current["capacity"] - current["enrolled"]
             message = f"Seat opened! {spots_left} spot(s) available ({current['enrolled']}/{current['capacity']})"

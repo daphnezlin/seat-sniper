@@ -28,7 +28,7 @@ def parse_sections(html: str):
     soup = BeautifulSoup(html, "html.parser")
     sections = []
 
-    # Use the second table (index 1) — it's the inner one with clean rows
+    # Use the second table (index 1), it's the inner one with clean rows
     tables = soup.find_all("table")
     if len(tables) < 2:
         return sections
