@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 
-const API = "http://localhost:8000"
+const API = "https://your-railway-url.up.railway.app"
 
 export default function App() {
   const [phone, setPhone] = useState("")
