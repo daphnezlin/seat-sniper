@@ -19,50 +19,53 @@ async def check_and_notify(course_code: str, term: str, current_sections: list, 
     # First time this course has been seen, save and check if seats already open
     if previous_sections is None:
         await save_snapshot(course_code, term, current_sections)
-        
-        # Notify immediately if seats are already open
+
+        # Only send one text if any section is open
         if notifier:
-            for current in current_sections:
-                if current["has_open_seat"]:
-                    spots_left = current["capacity"] - current["enrolled"]
-                    message = f"Seat available right now! {spots_left} spot(s) ({current['enrolled']}/{current['capacity']})"
-                    watchers = await get_watchers(course_code, term)
-                    for phone in watchers:
-                        await notifier(phone, course_code, current["section"], message)
-        
+            open_sections = [s for s in current_sections if s["has_open_seat"]]
+            if open_sections:
+                section_list = ", ".join(s["section"] for s in open_sections)
+                message = f"Seats available right now! Open sections: {section_list}"
+                watchers = await get_watchers(course_code, term)
+                for phone in watchers:
+                    await notifier(phone, course_code, "multiple", message)
+
         print(f"{course_code}: First snapshot saved")
         return
 
-    # Compare each section to what was seen last time
+    # Find all sections that just opened
+    newly_opened = []
+    newly_closed = []
+
     for current in current_sections:
         previous = find_section(previous_sections, current["section"])
-
         if previous is None:
             continue
 
         was_full = not previous["has_open_seat"]
         now_open = current["has_open_seat"]
 
-        # Seat just opened
         if was_full and now_open:
-            spots_left = current["capacity"] - current["enrolled"]
-            message = f"Seat opened! {spots_left} spot(s) available ({current['enrolled']}/{current['capacity']})"
-            print(f"OPEN: {course_code} {current['section']} — {message}")
-
-            if notifier:
-                watchers = await get_watchers(course_code, term)
-                for phone in watchers:
-                    await notifier(phone, course_code, current["section"], message)
-
-        # Seat closed again
+            newly_opened.append(current)
         if not was_full and not now_open:
-            print(f"CLOSED: {course_code} {current['section']} filled up again")
+            newly_closed.append(current)
 
-            if notifier:
-                watchers = await get_watchers(course_code, term)
-                message = f"Section {current['section']} filled up. Still watching."
-                for phone in watchers:
-                    await notifier(phone, course_code, current["section"], message)
+    # Send ONE text for all newly opened sections
+    if newly_opened and notifier:
+        section_list = ", ".join(s["section"] for s in newly_opened)
+        spots = sum(s["capacity"] - s["enrolled"] for s in newly_opened)
+        message = f"Seat(s) opened! Sections: {section_list} ({spots} total spots)"
+        watchers = await get_watchers(course_code, term)
+        for phone in watchers:
+            await notifier(phone, course_code, "multiple", message)
+
+    # Send ONE text if sections closed
+    if newly_closed and notifier:
+        section_list = ", ".join(s["section"] for s in newly_closed)
+        message = f"Heads up — {section_list} just filled up. Still watching other sections."
+        watchers = await get_watchers(course_code, term)
+        for phone in watchers:
+            await notifier(phone, course_code, "multiple", message)
 
     # Save the new snapshot
     await save_snapshot(course_code, term, current_sections)
