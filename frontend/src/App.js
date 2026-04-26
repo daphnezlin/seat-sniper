@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 
-const API = "https://your-railway-url.up.railway.app"
+const API = "https://seat-sniper-production.up.railway.app"
 
 export default function App() {
   const [phone, setPhone] = useState("")
