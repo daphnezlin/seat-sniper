@@ -1,12 +1,28 @@
 import sys
 sys.path.insert(0, '.')
 import asyncio
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from database.db import add_watcher, get_watched_courses
+from database.db import add_watcher, get_watched_courses, get_pool
+from workers.worker import run_sweep
 
-app = FastAPI()
+async def background_worker():
+    while True:
+        try:
+            await run_sweep()
+        except Exception as e:
+            print(f"Worker error: {e}")
+        await asyncio.sleep(60)
+
+@asynccontextmanager
+async def lifespan(app):
+    task = asyncio.create_task(background_worker())
+    yield
+    task.cancel()
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
