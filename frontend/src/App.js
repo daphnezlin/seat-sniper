@@ -115,6 +115,11 @@ export default function App() {
       <p style={{ marginTop: 40, fontSize: 13, color: "#999" }}>
         Built for UW students. Checks every 60 seconds between 8am–8pm.
       </p>
+
+      <div style={{ marginTop: 20, padding: 16, background: "#f9fafb", borderRadius: 6, fontSize: 13, color: "#666" }}>
+        <strong>How to stop texts:</strong> Reply <strong>STOP</strong> to the number that texted you. Reply <strong>START</strong> to resume.
+      </div>
+
     </div>
   )
 }
