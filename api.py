@@ -44,6 +44,15 @@ async def add_watch(req: WatchRequest):
     await add_watcher(req.phone, req.course_code.upper(), req.term)
     return {"status": "watching", "course": req.course_code}
 
+@app.delete("/watch")
+async def remove_watch(phone: str, course_code: str, term: str):
+    p = await get_pool()
+    await p.execute(
+        "UPDATE watched_courses SET active = false WHERE user_phone = $1 AND course_code = $2 AND term = $3",
+        phone, course_code.upper(), term
+    )
+    return {"status": "unsubscribed"}
+
 @app.get("/courses")
 async def list_courses():
     courses = await get_watched_courses()

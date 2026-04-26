@@ -47,7 +47,7 @@ export default function App() {
 
   const stopWatch = async (course_code, term) => {
     if (!phone) {
-      setStopStatus("Enter your phone number above first so we know which watcher to remove.")
+      setStopStatus("Enter your phone number above first.")
       return
     }
 
