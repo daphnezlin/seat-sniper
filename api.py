@@ -85,3 +85,28 @@ async def list_courses():
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+@app.get("/search")
+async def search_courses(subject: str, term: str = "1265"):
+    import httpx
+    from bs4 import BeautifulSoup
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                "https://classes.uwaterloo.ca/cgi-bin/cgiwrap/infocour/salook.pl",
+                data={"level": "under", "sess": term, "subject": subject.upper(), "cournum": ""},
+                headers={"User-Agent": "Mozilla/5.0"}
+            )
+            soup = BeautifulSoup(r.text, "html.parser")
+            courses = []
+            for row in soup.find_all("tr"):
+                cells = row.find_all("td")
+                if len(cells) == 4:
+                    subj = cells[0].text.strip()
+                    catalog = cells[1].text.strip()
+                    title = cells[3].text.strip()
+                    if subj == subject.upper() and catalog.isdigit():
+                        courses.append({"code": f"{subject.upper()}{catalog}", "title": title})
+            return {"courses": courses}
+    except Exception as e:
+        return {"courses": [], "error": str(e)}
