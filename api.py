@@ -50,7 +50,6 @@ async def add_watch(req: WatchRequest):
 
 async def notify_if_open(phone: str, course_code: str, term: str):
     """Check right now and text the user if seats are already open"""
-    print(f"Immediate check starting for {course_code} {phone}")
     try:
         subject = ''.join(filter(str.isalpha, course_code))
         cournum = ''.join(filter(str.isdigit, course_code))
@@ -60,18 +59,12 @@ async def notify_if_open(phone: str, course_code: str, term: str):
 
         html = await scrape_course(subject, cournum, term)
         sections = parse_sections(html)
-        print(f"Immediate check found {len(sections)} sections for {course_code}")
 
         open_sections = [s for s in sections if s["has_open_seat"]]
-        print(f"Immediate check found {len(open_sections)} open sections for {course_code}")
-
         if open_sections:
             section_list = ", ".join(s["section"] for s in open_sections)
             message = f"Seats available right now! Open sections: {section_list}"
             await send_sms(phone, course_code, "multiple", message)
-            print(f"Immediate check sent text to {phone}")
-        else:
-            print(f"Immediate check: no open seats for {course_code}")
     except Exception as e:
         print(f"Immediate check failed: {e}")
 
