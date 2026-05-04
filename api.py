@@ -42,7 +42,31 @@ class WatchRequest(BaseModel):
 @app.post("/watch")
 async def add_watch(req: WatchRequest):
     await add_watcher(req.phone, req.course_code.upper(), req.term)
+    
+    # Immediately check and notify if seats are open right now
+    asyncio.create_task(notify_if_open(req.phone, req.course_code.upper(), req.term))
+    
     return {"status": "watching", "course": req.course_code}
+
+async def notify_if_open(phone: str, course_code: str, term: str):
+    """Check right now and text the user if seats are already open"""
+    try:
+        subject = ''.join(filter(str.isalpha, course_code))
+        cournum = ''.join(filter(str.isdigit, course_code))
+
+        from scraper.scraper import scrape_course, parse_sections
+        from notifier.notify import send_sms
+
+        html = await scrape_course(subject, cournum, term)
+        sections = parse_sections(html)
+
+        open_sections = [s for s in sections if s["has_open_seat"]]
+        if open_sections:
+            section_list = ", ".join(s["section"] for s in open_sections)
+            message = f"Seats available right now! Open sections: {section_list}"
+            await send_sms(phone, course_code, "multiple", message)
+    except Exception as e:
+        print(f"Immediate check failed: {e}")
 
 @app.delete("/watch")
 async def remove_watch(phone: str, course_code: str, term: str):
