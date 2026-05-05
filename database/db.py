@@ -13,12 +13,15 @@ async def get_pool():
         pool = await asyncpg.create_pool(os.getenv("DATABASE_URL"))
     return pool
 
-async def get_watched_courses():
+async def get_watched_courses(phone: str = ""):
     p = await get_pool()
-    rows = await p.fetch(
-        "SELECT DISTINCT course_code, term FROM watched_courses WHERE active = true"
-    )
-    return [dict(row) for row in rows]
+    if phone:
+        rows = await p.fetch(
+            "SELECT DISTINCT course_code, term FROM watched_courses WHERE active = true AND user_phone = $1",
+            phone
+        )
+        return [dict(row) for row in rows]
+    return []
 
 async def get_watchers(course_code: str, term: str):
     p = await get_pool()

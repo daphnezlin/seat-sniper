@@ -78,8 +78,8 @@ async def remove_watch(phone: str, course_code: str, term: str):
     return {"status": "unsubscribed"}
 
 @app.get("/courses")
-async def list_courses():
-    courses = await get_watched_courses()
+async def list_courses(phone: str = ""):
+    courses = await get_watched_courses(phone)
     return courses
 
 @app.get("/health")

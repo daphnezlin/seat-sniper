@@ -24,11 +24,12 @@ export default function App() {
   }
 
   useEffect(() => {
-    fetch(`${API}/courses`)
+    if (!phone || phone === "+1") return
+    fetch(`${API}/courses?phone=${encodeURIComponent(phone)}`)
       .then(r => r.json())
       .then(setWatching)
       .catch(() => {})
-  }, [])
+  }, [phone])
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -135,9 +136,9 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#FFD700", padding: "20px" }}>
-      <div style={{ maxWidth: 500, margin: "0 auto", fontFamily: "Inter", padding: "40px 20px" }}>
+      <div style={{ maxWidth: 500, margin: "0 auto", fontFamily: "Didact Gothic", padding: "40px 20px" }}>
         <h1 style={{ fontSize: 28, marginBottom: 4, color: "#333" }}>UWaterloo Course Openings</h1>
-        <p style={{ color: "#555", marginBottom: 30 }}>
+        <p style={{ color: "#000000", marginBottom: 30 }}>
           Get a text when a spot in a course opens up
         </p>
 
@@ -167,7 +168,7 @@ export default function App() {
               setPhoneDisplay(formatted)
               setPhone("+1" + digits)
             }}
-            style={{ padding: 12, fontSize: 16, border: "1px solid #c8a800", borderRadius: 0, background: "#FFF8DC", color: "#333" }}
+            style={{ padding: 12, fontSize: 16, border: "1px solid #c8a800", borderRadius: 0, background: "#FFF8DC", color: "#333", fontFamily: "Didact Gothic" }}
           />
 
           <div ref={containerRef} style={{ position: "relative" }}>
@@ -185,7 +186,8 @@ export default function App() {
                 boxSizing: "border-box",
                 outline: "none",
                 background: "#FFF8DC",
-                color: "#333"
+                color: "#333",
+                fontFamily: "Didact Gothic"
               }}
             />
 
@@ -283,7 +285,8 @@ export default function App() {
               border: "none",
               borderRadius: 0,
               cursor: loading || !selectedCourse ? "not-allowed" : "pointer",
-              fontWeight: 600
+              fontWeight: 600,
+              fontFamily: "Didact Gothic"
             }}
           >
             {loading ? "Adding..." : "Track this course"}
@@ -298,13 +301,13 @@ export default function App() {
 
         {watching.length > 0 && (
           <div style={{ marginTop: 40 }}>
-            <h3 style={{ marginBottom: 0, color: "#000000", background: "#FFF8DC", padding: "12px 16px", border: "none" }}>Currently watching</h3>
+            <h3 style={{ marginBottom: 0, color: "#000000", background: "#FFF8DC", padding: "12px 16px", border: "1px solid #c8a800", borderBottom: "none" }}>Currently watching</h3>
             {stopStatus && (
               <p style={{ fontSize: 13, color: stopStatus.startsWith("✓") ? "#4a3800" : "#8b0000", margin: 0, padding: "8px 16px", background: "#FFF8DC", borderLeft: "1px solid #c8a800", borderRight: "1px solid #c8a800", fontWeight: 600 }}>
                 {stopStatus}
               </p>
             )}
-            <div style={{ border: "none" }}>
+            <div style={{ border: "1px solid #c8a800", borderTop: "none" }}>
               {watching.map((c, i) => (
                 <div key={i} style={{
                   padding: "12px 16px",
@@ -321,11 +324,11 @@ export default function App() {
                     onClick={() => stopWatch(c.course_code, c.term)}
                     style={{
                       padding: "4px 12px",
-                      background: "#FFF8DC",
-                      border: "1px solid #c8a800",
+                      background: "#000000",
+                      border: "1px solid #000000",
                       borderRadius: 0,
                       cursor: "pointer",
-                      color: "#000000",
+                      color: "white",
                       fontSize: 13
                     }}
                   >
