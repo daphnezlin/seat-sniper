@@ -135,32 +135,25 @@ export default function App() {
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <span style={{ padding: "12px 8px", fontSize: 16, border: "1px solid #ddd", borderRadius: 6, background: "#f9fafb", color: "#666" }}>+1</span>
-          <input
-            placeholder="(647) 123-4567"
-            value={phone.replace("+1", "")}
-            onChange={e => {
-              // Only allow digits
-              const digits = e.target.value.replace(/\D/g, "").slice(0, 10)
-              
-              // Format as (XXX) XXX-XXXX
-              let formatted = digits
-              if (digits.length > 6) {
-                formatted = `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`
-              } else if (digits.length > 3) {
-                formatted = `(${digits.slice(0,3)}) ${digits.slice(3)}`
-              } else if (digits.length > 0) {
-                formatted = `(${digits}`
-              }
+        <input
+          placeholder="Phone number e.g. (647) 123-4567"
+          onChange={e => {
+            const digits = e.target.value.replace(/\D/g, "").slice(0, 10)
+            
+            let formatted = digits
+            if (digits.length > 6) {
+              formatted = `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`
+            } else if (digits.length > 3) {
+              formatted = `(${digits.slice(0,3)}) ${digits.slice(3)}`
+            } else if (digits.length > 0) {
+              formatted = `(${digits}`
+            }
 
-              // Store as +1XXXXXXXXXX for Twilio
-              setPhone("+1" + digits)
-              e.target.value = formatted
-            }}
-            style={{ padding: 12, fontSize: 16, border: "1px solid #ddd", borderRadius: 6, flex: 1 }}
-          />
-        </div>
+            e.target.value = formatted
+            setPhone("+1" + digits)
+          }}
+          style={{ padding: 12, fontSize: 16, border: "1px solid #ddd", borderRadius: 6 }}
+        />
 
         {/* Course search with attached dropdown */}
         <div ref={containerRef} style={{ position: "relative" }}>
