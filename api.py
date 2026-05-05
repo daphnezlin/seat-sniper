@@ -130,7 +130,8 @@ async def search_courses(subject: str, term: str = "1265", cournum: str = ""):
 
     try:
         results = await asyncio.gather(*[fetch_subject(s) for s in matched_subjects])
-        all_courses = [course for sublist in results for course in sublist]
+        all_courses = [course for sublist in results for course in sublist
+                       if course["code"].lower().startswith(subject.lower() + cournum.lower())]
         return {"courses": all_courses}
     except Exception as e:
         return {"courses": [], "error": str(e)}
