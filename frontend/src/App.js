@@ -17,6 +17,11 @@ export default function App() {
   const searchTimeout = useRef(null)
   const containerRef = useRef(null)
 
+  const showStatus = (msg, setter) => {
+    setter(msg)
+    setTimeout(() => setter(""), 10000)
+  }
+
   useEffect(() => {
     fetch(`${API}/courses`)
       .then(r => r.json())
@@ -70,11 +75,11 @@ export default function App() {
 
   const addWatch = async () => {
     if (!phone) {
-      setStatus("Please enter your phone number")
+      showStatus("Please enter your phone number", setStatus)
       return
     }
     if (!selectedCourse) {
-      setStatus("Please select a course from the dropdown")
+      showStatus("Please select a course from the dropdown", setStatus)
       return
     }
 
@@ -87,23 +92,23 @@ export default function App() {
       })
 
       if (res.ok) {
-        setStatus(`✓ Now watching ${selectedCourse.code}! You'll get a text when a seat opens.`)
+        showStatus(`✓ Now watching ${selectedCourse.code}! You'll get a text when a seat opens.`, setStatus)
         setWatching([...watching, { course_code: selectedCourse.code, term }])
         setSubject("")
         setSelectedCourse(null)
         setCourses([])
       } else {
-        setStatus("Something went wrong. Try again.")
+        showStatus("Something went wrong. Try again.", setStatus)
       }
     } catch {
-      setStatus("Can't connect to server.")
+      showStatus("Can't connect to server.", setStatus)
     }
     setLoading(false)
   }
 
   const stopWatch = async (course_code, term) => {
     if (!phone) {
-      setStopStatus("Enter your phone number above first.")
+      showStatus("Enter your phone number above first.", setStopStatus)
       return
     }
     try {
@@ -113,12 +118,12 @@ export default function App() {
       )
       if (res.ok) {
         setWatching(watching.filter(c => !(c.course_code === course_code && c.term === term)))
-        setStopStatus(`✓ Stopped watching ${course_code}.`)
+        showStatus(`✓ Stopped watching ${course_code}.`, setStopStatus)
       } else {
-        setStopStatus("Something went wrong. Try again.")
+        showStatus("Something went wrong. Try again.", setStopStatus)
       }
     } catch {
-      setStopStatus("Can't connect to server.")
+      showStatus("Can't connect to server.", setStopStatus)
     }
   }
 
