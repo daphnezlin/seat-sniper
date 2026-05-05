@@ -87,14 +87,14 @@ async def health():
     return {"status": "ok"}
 
 @app.get("/search")
-async def search_courses(subject: str, term: str = "1265"):
+async def search_courses(subject: str, term: str = "1265", cournum: str = ""):
     import httpx
     from bs4 import BeautifulSoup
     try:
         async with httpx.AsyncClient() as client:
             r = await client.post(
                 "https://classes.uwaterloo.ca/cgi-bin/cgiwrap/infocour/salook.pl",
-                data={"level": "under", "sess": term, "subject": subject.upper(), "cournum": ""},
+                data={"level": "under", "sess": term, "subject": subject.upper(), "cournum": cournum},
                 headers={"User-Agent": "Mozilla/5.0"}
             )
             soup = BeautifulSoup(r.text, "html.parser")
