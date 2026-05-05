@@ -86,27 +86,51 @@ async def list_courses():
 async def health():
     return {"status": "ok"}
 
+KNOWN_SUBJECTS = [
+    "ACTSC", "AMATH", "ANTH", "ARABIC", "ARBUS", "ARCH", "ARTS", "ARTSC",
+    "BIOL", "BME", "BUS", "CHEM", "CHE", "CHINA", "CIVE", "CO", "COMM",
+    "CS", "DAC", "DUTCH", "EARTH", "ECON", "ENGL", "ENVE", "ECE", "ERS",
+    "FINE", "FR", "GEOG", "GEOL", "GER", "GERON", "GRK", "HIST", "HLTH",
+    "HRCS", "HUNG", "ITAL", "JAPAN", "JS", "KIN", "KOREA", "LANG", "LAT",
+    "LEGAL", "LS", "MATH", "ME", "MEDVL", "MENV", "MNS", "MOHAWK", "MTE",
+    "MSCI", "MUSIC", "NASC", "NE", "OPTOM", "PACS", "PD", "PDARCH", "PDPHRM",
+    "PHARM", "PHIL", "PHYS", "PLAN", "PMATH", "PORT", "PSYCH", "REC", "RUSS",
+    "SAF", "SCI", "SDS", "SE", "SI", "SMF", "SOC", "SOCWK", "SPAN", "SPCOM",
+    "STAT", "STV", "SYDE", "THPERF", "TOUR", "UKRAIN", "UNIV", "VCULT", "WKRPT"
+]
+
 @app.get("/search")
 async def search_courses(subject: str, term: str = "1265", cournum: str = ""):
     import httpx
     from bs4 import BeautifulSoup
+
+    matched_subjects = [s for s in KNOWN_SUBJECTS if s.startswith(subject.upper())]
+
+    async def fetch_subject(subj):
+        try:
+            async with httpx.AsyncClient() as client:
+                r = await client.post(
+                    "https://classes.uwaterloo.ca/cgi-bin/cgiwrap/infocour/salook.pl",
+                    data={"level": "under", "sess": term, "subject": subj, "cournum": cournum},
+                    headers={"User-Agent": "Mozilla/5.0"}
+                )
+                soup = BeautifulSoup(r.text, "html.parser")
+                courses = []
+                for row in soup.find_all("tr"):
+                    cells = row.find_all("td")
+                    if len(cells) == 4:
+                        subj_cell = cells[0].text.strip()
+                        catalog = cells[1].text.strip()
+                        title = cells[3].text.strip()
+                        if subj_cell == subj and catalog.isdigit():
+                            courses.append({"code": f"{subj}{catalog}", "title": title})
+                return courses
+        except:
+            return []
+
     try:
-        async with httpx.AsyncClient() as client:
-            r = await client.post(
-                "https://classes.uwaterloo.ca/cgi-bin/cgiwrap/infocour/salook.pl",
-                data={"level": "under", "sess": term, "subject": subject.upper(), "cournum": cournum},
-                headers={"User-Agent": "Mozilla/5.0"}
-            )
-            soup = BeautifulSoup(r.text, "html.parser")
-            courses = []
-            for row in soup.find_all("tr"):
-                cells = row.find_all("td")
-                if len(cells) == 4:
-                    subj = cells[0].text.strip()
-                    catalog = cells[1].text.strip()
-                    title = cells[3].text.strip()
-                    if subj == subject.upper() and catalog.isdigit():
-                        courses.append({"code": f"{subject.upper()}{catalog}", "title": title})
-            return {"courses": courses}
+        results = await asyncio.gather(*[fetch_subject(s) for s in matched_subjects])
+        all_courses = [course for sublist in results for course in sublist]
+        return {"courses": all_courses}
     except Exception as e:
         return {"courses": [], "error": str(e)}
