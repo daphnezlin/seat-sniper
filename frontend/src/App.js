@@ -149,7 +149,8 @@ export default function App() {
             onChange={e => {
               const digits = e.target.value.replace(/\D/g, "").slice(0, 10)
               const prevDigits = phone.replace("+1", "")
-              const isDeleting = digits.length < prevDigits.length
+              const isDeleting = digits.length < prevDigits.length || 
+               (digits.length === prevDigits.length && e.target.value.length < phoneDisplay.length)
               
               let formatted = ""
               if (digits.length === 0) {
