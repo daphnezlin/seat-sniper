@@ -13,7 +13,9 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [searching, setSearching] = useState(false)
   const [courses, setCourses] = useState([])
+  const [showDropdown, setShowDropdown] = useState(false)
   const searchTimeout = useRef(null)
+  const containerRef = useRef(null)
 
   useEffect(() => {
     fetch(`${API}/courses`)
@@ -22,14 +24,25 @@ export default function App() {
       .catch(() => {})
   }, [])
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [])
+
   const handleSubjectChange = (e) => {
     const val = e.target.value
     setSubject(val)
     setSelectedCourse(null)
     setCourses([])
+    setShowDropdown(false)
     setStatus("")
 
-    // Debounce — wait 500ms after user stops typing before searching
     clearTimeout(searchTimeout.current)
     if (val.length < 2) return
 
@@ -38,12 +51,21 @@ export default function App() {
       try {
         const res = await fetch(`${API}/search?subject=${val.toUpperCase()}&term=${term}`)
         const data = await res.json()
-        setCourses(data.courses || [])
+        if (data.courses && data.courses.length > 0) {
+          setCourses(data.courses)
+          setShowDropdown(true)
+        }
       } catch {
         setCourses([])
       }
       setSearching(false)
     }, 500)
+  }
+
+  const selectCourse = (course) => {
+    setSelectedCourse(course)
+    setSubject(course.code)
+    setShowDropdown(false)
   }
 
   const addWatch = async () => {
@@ -65,7 +87,7 @@ export default function App() {
       })
 
       if (res.ok) {
-        setStatus(`✓ Now watching ${selectedCourse.code} — ${selectedCourse.title}! You'll get a text when a seat opens.`)
+        setStatus(`✓ Now watching ${selectedCourse.code}! You'll get a text when a seat opens.`)
         setWatching([...watching, { course_code: selectedCourse.code, term }])
         setSubject("")
         setSelectedCourse(null)
@@ -115,33 +137,74 @@ export default function App() {
           style={{ padding: 12, fontSize: 16, border: "1px solid #ddd", borderRadius: 6 }}
         />
 
-        <input
-          placeholder="Subject e.g. CS, MATH, STAT"
-          value={subject}
-          onChange={handleSubjectChange}
-          style={{ padding: 12, fontSize: 16, border: "1px solid #ddd", borderRadius: 6 }}
-        />
-
-        {searching && (
-          <p style={{ margin: 0, color: "#999", fontSize: 14 }}>Searching...</p>
-        )}
-
-        {courses.length > 0 && !selectedCourse && (
-          <select
-            size={Math.min(courses.length, 8)}
-            onChange={e => {
-              const course = courses.find(c => c.code === e.target.value)
-              setSelectedCourse(course)
+        {/* Course search with attached dropdown */}
+        <div ref={containerRef} style={{ position: "relative" }}>
+          <input
+            placeholder="Search by subject e.g. CS, MATH, STAT"
+            value={subject}
+            onChange={handleSubjectChange}
+            onFocus={() => courses.length > 0 && setShowDropdown(true)}
+            style={{
+              padding: 12,
+              fontSize: 16,
+              border: "1px solid #ddd",
+              borderRadius: showDropdown ? "6px 6px 0 0" : "6px",
+              width: "100%",
+              boxSizing: "border-box",
+              outline: "none"
             }}
-            style={{ padding: 8, fontSize: 15, border: "1px solid #ddd", borderRadius: 6 }}
-          >
-            {courses.map(c => (
-              <option key={c.code} value={c.code}>
-                {c.code} — {c.title}
-              </option>
-            ))}
-          </select>
-        )}
+          />
+
+          {searching && (
+            <div style={{
+              position: "absolute",
+              right: 12,
+              top: "50%",
+              transform: "translateY(-50%)",
+              color: "#999",
+              fontSize: 13
+            }}>
+              Searching...
+            </div>
+          )}
+
+          {showDropdown && courses.length > 0 && (
+            <div style={{
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              right: 0,
+              background: "white",
+              border: "1px solid #ddd",
+              borderTop: "none",
+              borderRadius: "0 0 6px 6px",
+              maxHeight: 240,
+              overflowY: "auto",
+              zIndex: 100,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+            }}>
+              {courses.map(c => (
+                <div
+                  key={c.code}
+                  onClick={() => selectCourse(c)}
+                  style={{
+                    padding: "10px 14px",
+                    cursor: "pointer",
+                    fontSize: 14,
+                    borderBottom: "1px solid #f3f4f6",
+                    display: "flex",
+                    gap: 10
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
+                  onMouseLeave={e => e.currentTarget.style.background = "white"}
+                >
+                  <span style={{ fontWeight: 600, minWidth: 70 }}>{c.code}</span>
+                  <span style={{ color: "#666" }}>{c.title}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {selectedCourse && (
           <div style={{
@@ -149,14 +212,14 @@ export default function App() {
             background: "#eff6ff",
             border: "1px solid #bfdbfe",
             borderRadius: 6,
-            fontSize: 15,
+            fontSize: 14,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center"
           }}>
             <span>✓ {selectedCourse.code} — {selectedCourse.title}</span>
             <button
-              onClick={() => { setSelectedCourse(null); setCourses([]) }}
+              onClick={() => { setSelectedCourse(null); setSubject(""); setCourses([]) }}
               style={{ background: "none", border: "none", cursor: "pointer", color: "#999", fontSize: 18 }}
             >
               ✕
