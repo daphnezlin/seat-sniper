@@ -129,7 +129,7 @@ export default function App() {
 
   return (
     <div style={{ maxWidth: 500, margin: "60px auto", fontFamily: "sans-serif", padding: "0 20px" }}>
-      <h1 style={{ fontSize: 28, marginBottom: 4 }}>📚 UW Seat Sniper</h1>
+      <h1 style={{ fontSize: 28, marginBottom: 4 }}>UWaterloo Course Openings Notification</h1>
       <p style={{ color: "#666", marginBottom: 30 }}>
         Get a text the instant a seat opens in your course.
       </p>
@@ -138,7 +138,10 @@ export default function App() {
         <input
           placeholder="Phone number e.g. +16471234567"
           value={phone}
-          onChange={e => setPhone(e.target.value)}
+          onChange={e => {
+            const val = e.target.value.replace(/[^\d+]/g, '')
+            if (val.length <= 12) setPhone(val)
+          }}
           style={{ padding: 12, fontSize: 16, border: "1px solid #ddd", borderRadius: 6 }}
         />
 
