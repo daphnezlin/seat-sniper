@@ -19,8 +19,9 @@ async def background_worker():
 
 @asynccontextmanager
 async def lifespan(app):
-    # Connect to Redis
-    app.state.redis = await create_pool(RedisSettings())
+    app.state.redis = await create_pool(
+        RedisSettings.from_dsn(os.getenv("REDIS_URL", "redis://localhost:6379"))
+    )
     task = asyncio.create_task(background_worker())
     yield
     task.cancel()
