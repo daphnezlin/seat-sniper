@@ -2,11 +2,12 @@ import sys
 sys.path.insert(0, '.')
 import asyncio
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from database.db import add_watcher, get_watched_courses, get_pool
 from workers.worker import run_sweep
+from arq.connections import ArqRedis, create_pool, RedisSettings
 
 async def background_worker():
     while True:
@@ -18,9 +19,12 @@ async def background_worker():
 
 @asynccontextmanager
 async def lifespan(app):
+    # Connect to Redis
+    app.state.redis = await create_pool(RedisSettings())
     task = asyncio.create_task(background_worker())
     yield
     task.cancel()
+    await app.state.redis.close()
 
 app = FastAPI(lifespan=lifespan)
 
@@ -40,11 +44,15 @@ class WatchRequest(BaseModel):
     term: str
 
 @app.post("/watch")
-async def add_watch(req: WatchRequest):
+async def add_watch(req: WatchRequest, request: Request):
     await add_watcher(req.phone, req.course_code.upper(), req.term)
     
-    # Immediately check and notify if seats are open right now
-    asyncio.create_task(notify_if_open(req.phone, req.course_code.upper(), req.term))
+    # Push an immediate check job into Redis
+    await request.app.state.redis.enqueue_job(
+        'check_course_job',
+        req.course_code.upper(),
+        req.term
+    )
     
     return {"status": "watching", "course": req.course_code}
 

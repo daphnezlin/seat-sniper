@@ -3,25 +3,31 @@ import json
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 pool = None
 
 async def get_pool():
     global pool
     if pool is None:
-        pool = await asyncpg.create_pool(os.getenv("DATABASE_URL"))
+        pool = await asyncpg.create_pool(
+            os.getenv("DATABASE_URL"),
+            min_size=1,
+            max_size=3  # limit to 3 connections total
+        )
     return pool
 
-async def get_watched_courses(phone: str = ""):
-    p = await get_pool()
-    if phone:
-        rows = await p.fetch(
-            "SELECT DISTINCT course_code, term FROM watched_courses WHERE active = true AND user_phone = $1",
-            phone
+async def get_watched_courses():
+    # Create a fresh connection instead of using the pool
+    # to avoid stale connection issues
+    conn = await asyncpg.connect(os.getenv("DATABASE_URL"))
+    try:
+        rows = await conn.fetch(
+            "SELECT DISTINCT course_code, term FROM watched_courses WHERE active = true"
         )
         return [dict(row) for row in rows]
-    return []
+    finally:
+        await conn.close()
 
 async def get_watchers(course_code: str, term: str):
     p = await get_pool()
