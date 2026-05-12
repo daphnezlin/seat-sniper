@@ -7,23 +7,13 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from database.db import add_watcher, get_watched_courses, get_pool
-from workers.worker import run_sweep
 from arq.connections import ArqRedis, create_pool, RedisSettings
-
-async def background_worker():
-    while True:
-        try:
-            await run_sweep()
-        except Exception as e:
-            print(f"Worker error: {e}")
-        await asyncio.sleep(60)
 
 @asynccontextmanager
 async def lifespan(app):
     app.state.redis = await create_pool(
         RedisSettings.from_dsn(os.getenv("REDIS_URL", "redis://localhost:6379"))
     )
-    task = asyncio.create_task(background_worker())
     yield
     task.cancel()
     await app.state.redis.close()
