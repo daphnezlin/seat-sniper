@@ -17,9 +17,20 @@ async def get_pool():
         )
     return pool
 
-async def get_watched_courses():
-    # Create a fresh connection instead of using the pool
-    # to avoid stale connection issues
+async def get_watched_courses(phone: str = ""):
+    if not phone:
+        return []
+    conn = await asyncpg.connect(os.getenv("DATABASE_URL"))
+    try:
+        rows = await conn.fetch(
+            "SELECT DISTINCT course_code, term FROM watched_courses WHERE active = true AND user_phone = $1",
+            phone
+        )
+        return [dict(row) for row in rows]
+    finally:
+        await conn.close()
+
+async def get_all_watched_courses():
     conn = await asyncpg.connect(os.getenv("DATABASE_URL"))
     try:
         rows = await conn.fetch(

@@ -2,7 +2,7 @@ import sys
 sys.path.insert(0, '.')
 from arq import cron
 from arq.connections import RedisSettings
-from database.db import get_watched_courses
+from database.db import get_all_watched_courses
 from scraper.scraper import scrape_course, parse_sections
 from workers.checker import check_and_notify
 from notifier.notify import send_sms
@@ -38,7 +38,7 @@ async def check_course_job(ctx, course_code: str, term: str):
 
 # This runs on a schedule — every 60 seconds it queues all watched courses
 async def enqueue_all_courses(ctx):
-    courses = await get_watched_courses()
+    courses = await get_all_watched_courses()
     
     if not courses:
         print("No courses being watched")
