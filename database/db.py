@@ -67,3 +67,13 @@ async def log_notification(phone: str, course_code: str, section: str, message: 
         "INSERT INTO notifications (user_phone, course_code, section, message) VALUES ($1, $2, $3, $4)",
         phone, course_code, section, message
     )
+
+async def delete_snapshot(course_code: str, term: str):
+    conn = await asyncpg.connect(os.getenv("DATABASE_URL"))
+    try:
+        await conn.execute(
+            "DELETE FROM seat_snapshots WHERE course_code = $1 AND term = $2",
+            course_code, term
+        )
+    finally:
+        await conn.close()

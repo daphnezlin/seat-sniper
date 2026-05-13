@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from database.db import add_watcher, get_watched_courses, get_pool
+from database.db import add_watcher, get_watched_courses, get_pool, delete_snapshot
 from arq.connections import ArqRedis, create_pool, RedisSettings
 
 @asynccontextmanager
@@ -39,6 +39,7 @@ class WatchRequest(BaseModel):
 async def add_watch(req: WatchRequest, request: Request):
     await add_watcher(req.phone, req.course_code.upper(), req.term)
     
+    await delete_snapshot(req.course_code.upper(), req.term)
     # Push an immediate check job into Redis
     await request.app.state.redis.enqueue_job(
         'check_course_job',
