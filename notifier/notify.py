@@ -26,32 +26,28 @@ async def send_sms(phone: str, course_code: str, section: str, message: str):
 
 async def send_email(email: str, course_code: str, section: str, message: str):
     try:
-        msg = MIMEMultipart()
-        msg['Subject'] = f"Seat opened in {course_code}"
-        msg['From'] = os.getenv("GMAIL_ADDRESS")
-        msg['To'] = email
+        import urllib.request
+        import json as json_lib
+        
+        data = json_lib.dumps({
+            "personalizations": [{"to": [{"email": email}]}],
+            "from": {"email": os.getenv("SENDGRID_FROM_EMAIL")},
+            "subject": f"Seat opened in {course_code}",
+            "content": [{
+                "type": "text/plain",
+                "value": f"A seat has opened in {course_code}!\n\n{message}\n\nRegister now at quest.uwaterloo.ca before it fills up."
+            }]
+        }).encode()
 
-        body = f"""
-A seat has opened in {course_code}!
-
-{message}
-
-Register now at quest.uwaterloo.ca before it fills up.
-        """.strip()
-
-        msg.attach(MIMEText(body, 'plain'))
-
-        print(f"Attempting email to {email} from {os.getenv('GMAIL_ADDRESS')}")
-
-        with smtplib.SMTP('smtp.gmail.com', 587) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(
-                os.getenv("GMAIL_ADDRESS"),
-                os.getenv("GMAIL_APP_PASSWORD")
-            )
-            server.send_message(msg)
-
+        req = urllib.request.Request(
+            "https://api.sendgrid.com/v3/mail/send",
+            data=data,
+            headers={
+                "Authorization": f"Bearer {os.getenv('SENDGRID_API_KEY')}",
+                "Content-Type": "application/json"
+            }
+        )
+        urllib.request.urlopen(req)
         await log_notification(email, course_code, section, message)
         print(f"Email sent to {email} about {course_code}")
     except Exception as e:
