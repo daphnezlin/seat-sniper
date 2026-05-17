@@ -3,8 +3,6 @@ import json
 import os
 from dotenv import load_dotenv
 
-load_dotenv(override=True)
-
 pool = None
 
 async def get_pool():
