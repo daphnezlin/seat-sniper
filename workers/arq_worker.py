@@ -47,7 +47,7 @@ async def check_course_job(ctx, course_code: str, term: str):
 
 # This runs on a schedule — every 60 seconds it queues all watched courses
 async def enqueue_all_courses(ctx):
-    courses = await get_all_watched_courses()
+    courses = await get_watched_courses()
     
     if not courses:
         print("No courses being watched")
