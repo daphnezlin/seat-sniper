@@ -5,6 +5,8 @@ const API = "https://seat-sniper-production.up.railway.app"
 export default function App() {
   const [phone, setPhone] = useState("")
   const [phoneDisplay, setPhoneDisplay] = useState("")
+  const [email, setEmail] = useState("")
+  const [notifyMethod, setNotifyMethod] = useState("sms")
   const [subject, setSubject] = useState("")
   const [selectedCourse, setSelectedCourse] = useState(null)
   const [term, setTerm] = useState("1265")
@@ -42,37 +44,37 @@ export default function App() {
   }, [])
 
   const handleSubjectChange = (e) => {
-  const val = e.target.value
-  setSubject(val)
-  setSelectedCourse(null)
-  setCourses([])
-  setShowDropdown(false)
-  setStatus("")
+    const val = e.target.value
+    setSubject(val)
+    setSelectedCourse(null)
+    setCourses([])
+    setShowDropdown(false)
+    setStatus("")
 
-  clearTimeout(searchTimeout.current)
-  if (val.length < 1) return
+    clearTimeout(searchTimeout.current)
+    if (val.length < 1) return
 
-  searchTimeout.current = setTimeout(async () => {
-    setSearching(true)
-    try {
-      const match = val.match(/^([a-zA-Z]+)(\d*.*)$/)
-      const subjectPart = match ? match[1].toUpperCase() : val.toUpperCase()
-      const catalogPart = match ? match[2] : ""
+    searchTimeout.current = setTimeout(async () => {
+      setSearching(true)
+      try {
+        const match = val.match(/^([a-zA-Z]+)(\d*.*)$/)
+        const subjectPart = match ? match[1].toUpperCase() : val.toUpperCase()
+        const catalogPart = match ? match[2] : ""
 
-      const url = `${API}/search?subject=${subjectPart}&term=${term}${catalogPart ? `&cournum=${catalogPart}` : ""}`
-      const res = await fetch(url)
-      const data = await res.json()
+        const url = `${API}/search?subject=${subjectPart}&term=${term}${catalogPart ? `&cournum=${catalogPart}` : ""}`
+        const res = await fetch(url)
+        const data = await res.json()
 
-      if (data.courses && data.courses.length > 0) {
-        setCourses(data.courses)
-        setShowDropdown(true)
+        if (data.courses && data.courses.length > 0) {
+          setCourses(data.courses)
+          setShowDropdown(true)
+        }
+      } catch {
+        setCourses([])
       }
-    } catch {
-      setCourses([])
-    }
-    setSearching(false)
-  }, 300)
-}
+      setSearching(false)
+    }, 300)
+  }
 
   const selectCourse = (course) => {
     setSelectedCourse(course)
@@ -81,8 +83,12 @@ export default function App() {
   }
 
   const addWatch = async () => {
-    if (!phone) {
+    if ((notifyMethod === "sms" || notifyMethod === "both") && (!phone || phone === "+1")) {
       showStatus("Please enter your phone number", setStatus)
+      return
+    }
+    if ((notifyMethod === "email" || notifyMethod === "both") && !email) {
+      showStatus("Please enter your email address", setStatus)
       return
     }
     if (!selectedCourse) {
@@ -95,11 +101,18 @@ export default function App() {
       const res = await fetch(`${API}/watch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, course_code: selectedCourse.code, term })
+        body: JSON.stringify({
+          phone: phone || "",
+          email: email || "",
+          notify_method: notifyMethod,
+          course_code: selectedCourse.code,
+          term
+        })
       })
 
       if (res.ok) {
-        showStatus(`✓ Now watching ${selectedCourse.code}! You'll get a text when a seat opens.`, setStatus)
+        const method = notifyMethod === "sms" ? "text" : notifyMethod === "email" ? "email" : "text and email"
+        showStatus(`✓ Now watching ${selectedCourse.code}! You'll get a ${method} when a seat opens.`, setStatus)
         setWatching([...watching, { course_code: selectedCourse.code, term }])
         setSubject("")
         setSelectedCourse(null)
@@ -134,62 +147,103 @@ export default function App() {
     }
   }
 
+  const inputStyle = {
+    padding: 12,
+    fontSize: 16,
+    border: "1px solid #c8a800",
+    borderRadius: 0,
+    background: "#FFF8DC",
+    color: "#333",
+    fontFamily: "Didact Gothic",
+    width: "100%",
+    boxSizing: "border-box"
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "#FFD700", padding: "20px" }}>
       <div style={{ maxWidth: 500, margin: "0 auto", fontFamily: "Didact Gothic", padding: "40px 20px" }}>
         <h1 style={{ fontSize: 28, marginBottom: 4, color: "#333" }}>UWaterloo Course Openings</h1>
         <p style={{ color: "#000000", marginBottom: 30 }}>
-          Get a text when a spot in a course opens up
+          Get notified when a spot in a course opens up
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <input
-            placeholder="Phone number e.g. (647) 123-4567"
-            value={phoneDisplay}
-            onChange={e => {
-              const digits = e.target.value.replace(/\D/g, "").slice(0, 10)
-              const prevDigits = phone.replace("+1", "")
-              const isDeleting = digits.length < prevDigits.length || 
-               (digits.length === prevDigits.length && e.target.value.length < phoneDisplay.length)
-              
-              let formatted = ""
-              if (digits.length === 0) {
-                formatted = ""
-              } else if (digits.length < 3) {
-                formatted = `(${digits}`
-              } else if (digits.length === 3) {
-                formatted = isDeleting ? `(${digits}` : `(${digits}) `
-              } else if (digits.length < 6) {
-                formatted = `(${digits.slice(0,3)}) ${digits.slice(3)}`
-              } else if (digits.length === 6) {
-                formatted = isDeleting ? `(${digits.slice(0,3)}) ${digits.slice(3)}` : `(${digits.slice(0,3)}) ${digits.slice(3)}-`
-              } else {
-                formatted = `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`
-              }
-              setPhoneDisplay(formatted)
-              setPhone("+1" + digits)
-            }}
-            style={{ padding: 12, fontSize: 16, border: "1px solid #c8a800", borderRadius: 0, background: "#FFF8DC", color: "#333", fontFamily: "Didact Gothic" }}
-          />
 
+          {/* Notification method toggle */}
+          <div style={{ display: "flex", border: "1px solid #c8a800", background: "#FFF8DC" }}>
+            {["sms", "email", "both"].map(method => (
+              <button
+                key={method}
+                onClick={() => setNotifyMethod(method)}
+                style={{
+                  flex: 1,
+                  padding: "10px 0",
+                  fontSize: 14,
+                  fontFamily: "Didact Gothic",
+                  fontWeight: notifyMethod === method ? 700 : 400,
+                  background: notifyMethod === method ? "#000000" : "#FFF8DC",
+                  color: notifyMethod === method ? "#FFD700" : "#333",
+                  border: "none",
+                  borderRight: method !== "both" ? "1px solid #c8a800" : "none",
+                  cursor: "pointer"
+                }}
+              >
+                {method === "sms" ? "Text" : method === "email" ? "Email" : "Both"}
+              </button>
+            ))}
+          </div>
+
+          {/* Phone input — shown for sms and both */}
+          {(notifyMethod === "sms" || notifyMethod === "both") && (
+            <input
+              placeholder="Phone number e.g. (647) 123-4567"
+              value={phoneDisplay}
+              onChange={e => {
+                const digits = e.target.value.replace(/\D/g, "").slice(0, 10)
+                const prevDigits = phone.replace("+1", "")
+                const isDeleting = digits.length < prevDigits.length ||
+                  (digits.length === prevDigits.length && e.target.value.length < phoneDisplay.length)
+
+                let formatted = ""
+                if (digits.length === 0) {
+                  formatted = ""
+                } else if (digits.length < 3) {
+                  formatted = `(${digits}`
+                } else if (digits.length === 3) {
+                  formatted = isDeleting ? `(${digits}` : `(${digits}) `
+                } else if (digits.length < 6) {
+                  formatted = `(${digits.slice(0,3)}) ${digits.slice(3)}`
+                } else if (digits.length === 6) {
+                  formatted = isDeleting ? `(${digits.slice(0,3)}) ${digits.slice(3)}` : `(${digits.slice(0,3)}) ${digits.slice(3)}-`
+                } else {
+                  formatted = `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`
+                }
+                setPhoneDisplay(formatted)
+                setPhone("+1" + digits)
+              }}
+              style={inputStyle}
+            />
+          )}
+
+          {/* Email input — shown for email and both */}
+          {(notifyMethod === "email" || notifyMethod === "both") && (
+            <input
+              placeholder="Email address"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              type="email"
+              style={inputStyle}
+            />
+          )}
+
+          {/* Course search */}
           <div ref={containerRef} style={{ position: "relative" }}>
             <input
               placeholder="Search by subject e.g. CS, MATH, STAT"
               value={subject}
               onChange={handleSubjectChange}
               onFocus={() => courses.length > 0 && setShowDropdown(true)}
-              style={{
-                padding: 12,
-                fontSize: 16,
-                border: "1px solid #c8a800",
-                borderRadius: 0,
-                width: "100%",
-                boxSizing: "border-box",
-                outline: "none",
-                background: "#FFF8DC",
-                color: "#333",
-                fontFamily: "Didact Gothic"
-              }}
+              style={{ ...inputStyle, outline: "none" }}
             />
 
             {searching && (
@@ -282,7 +336,7 @@ export default function App() {
               padding: 14,
               fontSize: 16,
               background: loading || !selectedCourse ? "#c8a800" : "#000000",
-              color: loading || !selectedCourse ? "#FFF8DC" : "#FFF8DC",
+              color: "#FFF8DC",
               border: "none",
               borderRadius: 0,
               cursor: loading || !selectedCourse ? "not-allowed" : "pointer",

@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from database.db import add_watcher, get_watched_courses, get_pool, delete_snapshot
+from database.db import add_watcher, get_watched_courses, get_pool
 from arq.connections import ArqRedis, create_pool, RedisSettings
 
 @asynccontextmanager
@@ -32,31 +32,37 @@ app.add_middleware(
 
 class WatchRequest(BaseModel):
     phone: str
+    email: str = ""
+    notify_method: str = "sms"
     course_code: str
     term: str
 
 @app.post("/watch")
 async def add_watch(req: WatchRequest, request: Request):
-    await add_watcher(req.phone, req.course_code.upper(), req.term)
+    await add_watcher(req.phone, req.email, req.notify_method, req.course_code.upper(), req.term)
     
-    await delete_snapshot(req.course_code.upper(), req.term)
-    # Push an immediate check job into Redis
-    await request.app.state.redis.enqueue_job(
-        'check_course_job',
-        req.course_code.upper(),
-        req.term
-    )
+    try:
+        job = await request.app.state.redis.enqueue_job(
+            'check_course_job',
+            req.course_code.upper(),
+            req.term
+        )
+        print(f"Enqueued immediate job: {job}")
+    except Exception as e:
+        print(f"Failed to enqueue job: {e}")
+    
+    asyncio.create_task(notify_if_open(req.phone, req.email, req.notify_method, req.course_code.upper(), req.term))
     
     return {"status": "watching", "course": req.course_code}
 
-async def notify_if_open(phone: str, course_code: str, term: str):
-    """Check right now and text the user if seats are already open"""
+async def notify_if_open(phone: str, email: str, notify_method: str, course_code: str, term: str):
+    print(f"Immediate check starting for {course_code}")
     try:
         subject = ''.join(filter(str.isalpha, course_code))
         cournum = ''.join(filter(str.isdigit, course_code))
 
         from scraper.scraper import scrape_course, parse_sections
-        from notifier.notify import send_sms
+        from notifier.notify import notify
 
         html = await scrape_course(subject, cournum, term)
         sections = parse_sections(html)
@@ -65,7 +71,8 @@ async def notify_if_open(phone: str, course_code: str, term: str):
         if open_sections:
             section_list = ", ".join(s["section"] for s in open_sections)
             message = f"Seats available right now! Open sections: {section_list}"
-            await send_sms(phone, course_code, "multiple", message)
+            await notify(phone, email, course_code, "multiple", message, notify_method)
+            print(f"Immediate check notified for {course_code}")
     except Exception as e:
         print(f"Immediate check failed: {e}")
 

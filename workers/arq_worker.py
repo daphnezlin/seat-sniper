@@ -10,16 +10,13 @@ import asyncio
 import random
 import os
 
-# This runs when a single course check job is pulled from the queue
 async def check_course_job(ctx, course_code: str, term: str):
-    """Worker function — processes one course check job"""
     print(f"Processing job: {course_code}")
     
     try:
         subject = ''.join(filter(str.isalpha, course_code))
         cournum = ''.join(filter(str.isdigit, course_code))
 
-        # Random jitter so requests don't look robotic
         await asyncio.sleep(random.uniform(1, 3))
 
         html = await scrape_course(subject, cournum, term)
@@ -29,12 +26,24 @@ async def check_course_job(ctx, course_code: str, term: str):
             print(f"{course_code}: No sections found")
             return
 
-        await check_and_notify(course_code, term, sections, notifier=send_sms)
+        from notifier.notify import notify
+
+        async def notifier(watcher, course_code, section, message):
+            await notify(
+                phone=watcher["user_phone"],
+                email=watcher["email"],
+                course_code=course_code,
+                section=section,
+                message=message,
+                method=watcher["notify_method"]
+            )
+
+        await check_and_notify(course_code, term, sections, notifier=notifier)
         print(f"{course_code}: Done")
 
     except Exception as e:
         print(f"{course_code}: Failed — {e}")
-        raise  # arq will retry failed jobs automatically
+        raise
 
 # This runs on a schedule — every 60 seconds it queues all watched courses
 async def enqueue_all_courses(ctx):
