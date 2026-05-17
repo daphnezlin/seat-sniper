@@ -43,7 +43,9 @@ Register now at quest.uwaterloo.ca before it fills up.
 
         print(f"Attempting email to {email} from {os.getenv('GMAIL_ADDRESS')}")
 
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.ehlo()
+            server.starttls()
             server.login(
                 os.getenv("GMAIL_ADDRESS"),
                 os.getenv("GMAIL_APP_PASSWORD")
