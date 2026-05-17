@@ -24,7 +24,7 @@ async def send_sms(phone: str, course_code: str, section: str, message: str):
     except Exception as e:
         print(f"Failed to send SMS to {phone}: {e}")
 
-async def send_email(email: str, course_code: str, message: str):
+async def send_email(email: str, course_code: str, section: str, message: str):
     try:
         msg = MIMEMultipart()
         msg['Subject'] = f"Seat opened in {course_code}"
