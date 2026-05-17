@@ -26,30 +26,22 @@ async def send_sms(phone: str, course_code: str, section: str, message: str):
 
 async def send_email(email: str, course_code: str, section: str, message: str):
     try:
-        import urllib.request
-        import json as json_lib
-        
-        data = json_lib.dumps({
-            "personalizations": [{"to": [{"email": email}]}],
-            "from": {"email": os.getenv("SENDGRID_FROM_EMAIL")},
-            "subject": f"Seat opened in {course_code}",
-            "content": [{
-                "type": "text/plain",
-                "value": f"A seat has opened in {course_code}!\n\n{message}\n\nRegister now at quest.uwaterloo.ca before it fills up."
-            }]
-        }).encode()
+        from sendgrid import SendGridAPIClient
+        from sendgrid.helpers.mail import Mail
 
-        req = urllib.request.Request(
-            "https://api.sendgrid.com/v3/mail/send",
-            data=data,
-            headers={
-                "Authorization": f"Bearer {os.getenv('SENDGRID_API_KEY')}",
-                "Content-Type": "application/json"
-            }
+        message_body = f"A seat has opened in {course_code}!\n\n{message}\n\nRegister now at quest.uwaterloo.ca before it fills up."
+        
+        msg = Mail(
+            from_email=os.getenv("SENDGRID_FROM_EMAIL"),
+            to_emails=email,
+            subject=f"Seat opened in {course_code}",
+            plain_text_content=message_body
         )
-        urllib.request.urlopen(req)
+
+        sg = SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
+        response = sg.send(msg)
+        print(f"Email sent to {email}, status: {response.status_code}")
         await log_notification(email, course_code, section, message)
-        print(f"Email sent to {email} about {course_code}")
     except Exception as e:
         import traceback
         print(f"Failed to send email to {email}: {e}")
