@@ -56,6 +56,7 @@ Reply to this email or visit the site to stop watching this course.
         print(f"Failed to send email to {email}: {e}")
 
 async def notify(phone: str, email: str, course_code: str, section: str, message: str, method: str):
+    print(f"notify called: method={method}, phone={phone}, email={email}")
     if method == 'sms':
         await send_sms(phone, course_code, section, message)
     elif method == 'email':
