@@ -37,11 +37,11 @@ A seat has opened in {course_code}!
 {message}
 
 Register now at quest.uwaterloo.ca before it fills up.
-
-Reply to this email or visit the site to stop watching this course.
         """.strip()
 
         msg.attach(MIMEText(body, 'plain'))
+
+        print(f"Attempting email to {email} from {os.getenv('GMAIL_ADDRESS')}")
 
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
             server.login(
@@ -50,10 +50,12 @@ Reply to this email or visit the site to stop watching this course.
             )
             server.send_message(msg)
 
-        await log_notification(email, course_code, "email", message)
+        await log_notification(email, course_code, section, message)
         print(f"Email sent to {email} about {course_code}")
     except Exception as e:
+        import traceback
         print(f"Failed to send email to {email}: {e}")
+        traceback.print_exc()
 
 async def notify(phone: str, email: str, course_code: str, section: str, message: str, method: str):
     print(f"notify called: method={method}, phone={phone}, email={email}")
