@@ -30,12 +30,12 @@ export default function App() {
   const notifyMethod = phoneEnabled && emailEnabled ? "both" : phoneEnabled ? "sms" : "email"
 
   const togglePhone = () => {
-    if (phoneEnabled && !emailEnabled) return // can't turn off both
+    if (phoneEnabled && !emailEnabled) return
     setPhoneEnabled(!phoneEnabled)
   }
 
   const toggleEmail = () => {
-    if (emailEnabled && !phoneEnabled) return // can't turn off both
+    if (emailEnabled && !phoneEnabled) return
     setEmailEnabled(!emailEnabled)
   }
 
@@ -134,10 +134,7 @@ export default function App() {
       })
 
       if (res.ok) {
-        if (emailEnabled) {
-          setShowSpamWarning(true)
-          setTimeout(() => setShowSpamWarning(false), 15000)
-        }
+        if (emailEnabled) setShowSpamWarning(true)
         const method = notifyMethod === "sms" ? "text" : notifyMethod === "email" ? "email" : "text and email"
         showStatus(`✓ Now watching ${selectedCourse.code}! You'll get a ${method} when a seat opens.`, setStatus)
         setWatching([...watching, { course_code: selectedCourse.code, term }])
@@ -203,13 +200,64 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#FFD700", padding: "40px 20px" }}>
+
+      {showSpamWarning && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setShowSpamWarning(false) }}
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.6)", zIndex: 9999,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "20px",
+            WebkitOverflowScrolling: "touch"
+          }}
+        >
+          <div style={{
+            background: "#FFF8DC",
+            padding: 32,
+            maxWidth: 360,
+            width: "100%",
+            position: "relative",
+            textAlign: "center",
+            fontFamily: "Didact Gothic",
+            boxSizing: "border-box"
+          }}>
+            <button
+              onClick={() => setShowSpamWarning(false)}
+              style={{
+                position: "absolute", top: 12, right: 16,
+                background: "none", border: "none", fontSize: 24,
+                cursor: "pointer", color: "#888", lineHeight: 1
+              }}
+            >
+              ✕
+            </button>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>📬</div>
+            <h3 style={{ margin: "0 0 12px 0", color: "#1a1a1a", fontSize: 18 }}>Check your spam folder</h3>
+            <p style={{ margin: "0 0 20px 0", color: "#555", fontSize: 14, lineHeight: 1.6 }}>
+              Email notifications may land in your spam folder.
+              Mark our email as "Not Spam" so you don't miss a seat opening.
+            </p>
+            <button
+              onClick={() => setShowSpamWarning(false)}
+              style={{
+                padding: "10px 32px", background: "#1a1a1a", color: "#FFD700",
+                border: "none", cursor: "pointer", fontSize: 15,
+                fontFamily: "Didact Gothic", fontWeight: 600
+              }}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
       <div style={{ maxWidth: 500, margin: "0 auto", fontFamily: "Didact Gothic" }}>
         <h1 style={{ fontSize: 32, marginBottom: 8, color: "#1a1a1a", textAlign: "center", fontWeight: 700 }}>UWaterloo Course Openings</h1>
         <p style={{ color: "#333", marginBottom: 40, textAlign: "center", fontSize: 16 }}>
           Get notified when a spot in a course opens up
         </p>
 
-        {/* Form */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -339,26 +387,8 @@ export default function App() {
               {status}
             </p>
           )}
-
-          {showSpamWarning && (
-            <div style={{
-              marginTop: 8, padding: "12px 14px",
-              background: "#FFF8DC", border: "1px solid #c8a800",
-              fontSize: 13, color: "#555", lineHeight: 1.6,
-              display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8
-            }}>
-              <span> Check your spam folder and mark our email as "Not Spam" so you don't miss a seat opening.</span>
-              <button
-                onClick={() => setShowSpamWarning(false)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#aaa", fontSize: 16, flexShrink: 0, padding: 0 }}
-              >
-                ✕
-              </button>
-            </div>
-          )}
         </div>
 
-        {/* Currently watching */}
         <div style={{ marginTop: 40 }}>
           <h3 style={{ margin: "0 0 16px 0", color: "#1a1a1a", fontSize: 16, fontWeight: 700 }}>Currently watching</h3>
           {stopStatus && (
