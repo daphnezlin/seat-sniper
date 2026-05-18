@@ -18,6 +18,7 @@ export default function App() {
   const [searching, setSearching] = useState(false)
   const [courses, setCourses] = useState([])
   const [showDropdown, setShowDropdown] = useState(false)
+  const [showSpamWarning, setShowSpamWarning] = useState(false)
   const searchTimeout = useRef(null)
   const containerRef = useRef(null)
 
@@ -133,6 +134,10 @@ export default function App() {
       })
 
       if (res.ok) {
+        if (emailEnabled) {
+          setShowSpamWarning(true)
+          setTimeout(() => setShowSpamWarning(false), 15000)
+        }
         const method = notifyMethod === "sms" ? "text" : notifyMethod === "email" ? "email" : "text and email"
         showStatus(`✓ Now watching ${selectedCourse.code}! You'll get a ${method} when a seat opens.`, setStatus)
         setWatching([...watching, { course_code: selectedCourse.code, term }])
@@ -333,6 +338,23 @@ export default function App() {
             <p style={{ margin: 0, color: status.startsWith("✓") ? "#4a3800" : "#8b0000", fontWeight: 600, fontSize: 14 }}>
               {status}
             </p>
+          )}
+
+          {showSpamWarning && (
+            <div style={{
+              marginTop: 8, padding: "12px 14px",
+              background: "#FFF8DC", border: "1px solid #c8a800",
+              fontSize: 13, color: "#555", lineHeight: 1.6,
+              display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8
+            }}>
+              <span> Check your spam folder and mark our email as "Not Spam" so you don't miss a seat opening.</span>
+              <button
+                onClick={() => setShowSpamWarning(false)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#aaa", fontSize: 16, flexShrink: 0, padding: 0 }}
+              >
+                ✕
+              </button>
+            </div>
           )}
         </div>
 
