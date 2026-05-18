@@ -39,12 +39,23 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (!phone || phone === "+1") return
-    fetch(`${API}/courses?phone=${encodeURIComponent(phone)}`)
+    const hasPhone = phone && phone !== "+1" && phone.length > 2
+    const hasEmail = email && email.includes("@")
+
+    if (!hasPhone && !hasEmail) {
+      setWatching([])
+      return
+    }
+
+    const params = new URLSearchParams()
+    if (hasPhone) params.append("phone", phone)
+    if (hasEmail) params.append("email", email)
+
+    fetch(`${API}/courses?${params.toString()}`)
       .then(r => r.json())
       .then(setWatching)
       .catch(() => {})
-  }, [phone])
+  }, [phone, email])
 
   useEffect(() => {
     const handleClick = (e) => {

@@ -15,13 +15,23 @@ async def get_pool():
         )
     return pool
 
-async def get_watched_courses(phone: str = ""):
+async def get_watched_courses(phone: str = "", email: str = ""):
     conn = await asyncpg.connect(os.getenv("DATABASE_URL"))
     try:
-        if phone:
+        if phone and email:
+            rows = await conn.fetch(
+                "SELECT DISTINCT course_code, term FROM watched_courses WHERE active = true AND (user_phone = $1 OR email = $2)",
+                phone, email
+            )
+        elif phone:
             rows = await conn.fetch(
                 "SELECT DISTINCT course_code, term FROM watched_courses WHERE active = true AND user_phone = $1",
                 phone
+            )
+        elif email:
+            rows = await conn.fetch(
+                "SELECT DISTINCT course_code, term FROM watched_courses WHERE active = true AND email = $1",
+                email
             )
         else:
             rows = await conn.fetch(
