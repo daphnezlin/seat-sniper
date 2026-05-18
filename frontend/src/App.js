@@ -169,25 +169,6 @@ export default function App() {
     }
   }
 
-  const inputStyle = {
-    padding: 12,
-    fontSize: 15,
-    border: "1px solid #c8a800",
-    borderRadius: 0,
-    background: "#FFF8DC",
-    color: "#333",
-    fontFamily: "Didact Gothic",
-    width: "100%",
-    boxSizing: "border-box"
-  }
-
-  const disabledInputStyle = {
-    ...inputStyle,
-    background: "#e8d870",
-    color: "#999",
-    cursor: "not-allowed"
-  }
-
   const Toggle = ({ enabled, onToggle }) => (
     <div
       onClick={onToggle}
