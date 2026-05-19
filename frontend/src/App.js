@@ -232,7 +232,7 @@ export default function App() {
             >
               ✕
             </button>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>📬</div>
+            <div style={{ fontSize: 36, marginBottom: 12 }}></div>
             <h3 style={{ margin: "0 0 12px 0", color: "#1a1a1a", fontSize: 18 }}>Check your spam folder</h3>
             <p style={{ margin: "0 0 20px 0", color: "#555", fontSize: 14, lineHeight: 1.6 }}>
               Email notifications may land in your spam folder.
