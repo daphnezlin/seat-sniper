@@ -5,14 +5,11 @@ from arq.connections import RedisSettings
 from database.db import get_watched_courses
 from scraper.scraper import scrape_course, parse_sections
 from workers.checker import check_and_notify
-from notifier.notify import send_sms
 import asyncio
 import random
 import os
 
 async def check_course_job(ctx, course_code: str, term: str):
-    print(f"Processing job: {course_code}")
-    
     try:
         subject = ''.join(filter(str.isalpha, course_code))
         cournum = ''.join(filter(str.isdigit, course_code))
@@ -23,7 +20,6 @@ async def check_course_job(ctx, course_code: str, term: str):
         sections = parse_sections(html)
 
         if not sections:
-            print(f"{course_code}: No sections found")
             return
 
         from notifier.notify import notify
@@ -39,30 +35,22 @@ async def check_course_job(ctx, course_code: str, term: str):
             )
 
         await check_and_notify(course_code, term, sections, notifier=notifier)
-        print(f"{course_code}: Done")
 
     except Exception as e:
         print(f"{course_code}: Failed — {e}")
         raise
 
-# This runs on a schedule — every 60 seconds it queues all watched courses
 async def enqueue_all_courses(ctx):
     courses = await get_watched_courses()
-    
     if not courses:
-        print("No courses being watched")
         return
-    
-    print(f"Enqueueing {len(courses)} courses...")
-    
+
     for course in courses:
         await ctx['redis'].enqueue_job(
             'check_course_job',
             course['course_code'],
             course['term']
         )
-    
-    print(f"Enqueued {len(courses)} jobs")
 
 class WorkerSettings:
     functions = [check_course_job]
