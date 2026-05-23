@@ -1,4 +1,4 @@
-# UW Seat Sniper
+# Seat Sniper
 
 Get notified immediately a seat opens in any UWaterloo course by text, email, or both.
 
