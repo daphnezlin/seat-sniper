@@ -16,30 +16,27 @@ async def get_pool():
     return pool
 
 async def get_watched_courses(phone: str = "", email: str = ""):
-    conn = await asyncpg.connect(os.getenv("DATABASE_URL"))
-    try:
-        if phone and email:
-            rows = await conn.fetch(
-                "SELECT DISTINCT course_code, term FROM watched_courses WHERE active = true AND (user_phone = $1 OR email = $2)",
-                phone, email
-            )
-        elif phone:
-            rows = await conn.fetch(
-                "SELECT DISTINCT course_code, term FROM watched_courses WHERE active = true AND user_phone = $1",
-                phone
-            )
-        elif email:
-            rows = await conn.fetch(
-                "SELECT DISTINCT course_code, term FROM watched_courses WHERE active = true AND email = $1",
-                email
-            )
-        else:
-            rows = await conn.fetch(
-                "SELECT DISTINCT course_code, term FROM watched_courses WHERE active = true"
-            )
-        return [dict(row) for row in rows]
-    finally:
-        await conn.close()
+    p = await get_pool()
+    if phone and email:
+        rows = await p.fetch(
+            "SELECT DISTINCT course_code, term FROM watched_courses WHERE active = true AND (user_phone = $1 OR email = $2)",
+            phone, email
+        )
+    elif phone:
+        rows = await p.fetch(
+            "SELECT DISTINCT course_code, term FROM watched_courses WHERE active = true AND user_phone = $1",
+            phone
+        )
+    elif email:
+        rows = await p.fetch(
+            "SELECT DISTINCT course_code, term FROM watched_courses WHERE active = true AND email = $1",
+            email
+        )
+    else:
+        rows = await p.fetch(
+            "SELECT DISTINCT course_code, term FROM watched_courses WHERE active = true"
+        )
+    return [dict(row) for row in rows]
 
 async def get_watchers(course_code: str, term: str):
     p = await get_pool()
@@ -52,7 +49,12 @@ async def get_watchers(course_code: str, term: str):
 async def save_snapshot(course_code: str, term: str, sections: list):
     p = await get_pool()
     await p.execute(
-        "INSERT INTO seat_snapshots (course_code, term, sections) VALUES ($1, $2, $3)",
+        """
+        INSERT INTO seat_snapshots (course_code, term, sections, scraped_at)
+        VALUES ($1, $2, $3, NOW())
+        ON CONFLICT (course_code, term)
+        DO UPDATE SET sections = EXCLUDED.sections, scraped_at = EXCLUDED.scraped_at
+        """,
         course_code, term, json.dumps(sections)
     )
 
