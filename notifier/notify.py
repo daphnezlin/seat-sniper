@@ -15,7 +15,7 @@ twilio_client = Client(os.getenv("TWILIO_ACCOUNT_SID"), os.getenv("TWILIO_AUTH_T
 async def send_sms(phone: str, course_code: str, section: str, message: str):
     try:
         twilio_client.messages.create(
-            body=f"🎓 {course_code} — {section}\n{message}\nRegister now at quest.uwaterloo.ca",
+            body=f" {course_code} — {section}\n{message}\nRegister now at quest.uwaterloo.ca",
             from_=os.getenv("TWILIO_PHONE"),
             to=phone
         )
