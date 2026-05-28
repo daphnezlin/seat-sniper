@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 
-const API = "https://seat-sniper-production.up.railway.app"
+const API = "https://seat-sniper.onrender.com"
 
 export default function App() {
   const [phone, setPhone] = useState("")
